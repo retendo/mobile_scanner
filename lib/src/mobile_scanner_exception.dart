@@ -58,3 +58,22 @@ class MobileScannerBarcodeException implements Exception {
     return 'MobileScannerBarcodeException(Could not detect a barcode in the input image.)';
   }
 }
+
+/// This class represents an exception thrown by the [MobileScannerController]
+/// when a take picture error occurs.
+class MobileScannerTakePictureException implements Exception {
+  /// Creates a new [MobileScannerTakePictureException] with the given error message.
+  const MobileScannerTakePictureException(this.message);
+
+  /// The error message of the exception.
+  final String? message;
+
+  @override
+  String toString() {
+    if (message?.isNotEmpty ?? false) {
+      return 'MobileScannerTakePictureException($message)';
+    }
+
+    return 'MobileScannerTakePictureException(Could not take a picture.)';
+  }
+}

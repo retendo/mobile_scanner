@@ -24,6 +24,10 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
   @visibleForTesting
   static const String kBarcodeErrorEventName = 'MOBILE_SCANNER_BARCODE_ERROR';
 
+  /// The name of the error event that is sent when a take picture error occurs.
+  @visibleForTesting
+  static const String kTakePictureErrorEventName = 'MOBILE_SCANNER_TAKE_PICTURE_ERROR';
+
   /// The method channel used to interact with the native platform.
   @visibleForTesting
   final methodChannel = const MethodChannel(
@@ -84,6 +88,30 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
       errorCode: MobileScannerErrorCode.unsupported,
       errorDetails: MobileScannerErrorDetails(
         message: MobileScannerErrorCode.unsupported.message,
+      ),
+    );
+  }
+
+  /// Parse a [Uint8List]? from the given [event].
+  Uint8List? _parseImage(Map<Object?, Object?>? event) {
+    if (event == null) {
+      return null;
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS) {
+      final Map<Object?, Object?>? imageData =
+          event['image'] as Map<Object?, Object?>?;
+      final Uint8List? image = imageData?['bytes'] as Uint8List?;
+
+      return image;
+    }
+
+    throw const MobileScannerException(
+      errorCode: MobileScannerErrorCode.genericError,
+      errorDetails: MobileScannerErrorDetails(
+        message: 'Only Android, iOS and macOS are supported.',
       ),
     );
   }
@@ -312,6 +340,23 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
     _pausing = true;
 
     await methodChannel.invokeMethod<void>('pause', {'force': force});
+  }
+
+  @override
+  Future<Uint8List?> takePicture() async {
+    try {
+      final Map<Object?, Object?>? result =
+        await methodChannel.invokeMapMethod<Object?, Object?>('takePicture');
+
+      return _parseImage(result);
+    } on PlatformException catch (error) {
+      // Handle any errors from analyze image requests.
+      if (error.code == kTakePictureErrorEventName) {
+        throw MobileScannerTakePictureException(error.message);
+      }
+
+      return null;
+    }
   }
 
   @override

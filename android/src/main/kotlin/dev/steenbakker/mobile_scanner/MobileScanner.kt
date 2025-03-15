@@ -3,9 +3,11 @@ package dev.steenbakker.mobile_scanner
 import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.graphics.Rect
 import android.hardware.display.DisplayManager
+import android.media.Image
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -18,6 +20,8 @@ import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.core.TorchState
@@ -40,6 +44,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
 import kotlin.math.roundToInt
 
 class MobileScanner(
@@ -553,6 +558,63 @@ class MobileScanner(
         }.addOnCompleteListener {
             barcodeScanner.close()
         }
+    }
+
+    /**
+     * Take a picture.
+     */
+    @ExperimentalGetImage
+    fun takePicture(
+        onSuccess: TakePictureSuccessCallback,
+        onError: TakePictureErrorCallback) {
+        val imageCapture = camera?.cameraInfo?.sensorRotationDegrees?.let {
+            ImageCapture.Builder()
+                .build()
+        }
+
+        cameraSelector?.let {
+            cameraProvider?.bindToLifecycle(activity as LifecycleOwner,
+                it, imageCapture, preview)
+        }
+
+        val executor = ContextCompat.getMainExecutor(activity)
+        imageCapture?.takePicture(executor, object : ImageCapture.OnImageCapturedCallback() {
+            override fun onError(error: ImageCaptureException)
+            {
+                onError(error.message ?: "")
+            }
+            override fun onCaptureSuccess(imageProxy: ImageProxy) {
+                val mediaImage = imageProxy.image;
+                if (mediaImage == null) {
+                    onError("No image found after capture.")
+                } else {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val bitmap = imageProxyToBitmap(mediaImage);
+
+                        val bmResult = rotateBitmap(bitmap, camera?.cameraInfo?.sensorRotationDegrees?.toFloat() ?: 90f)
+
+                        val stream = ByteArrayOutputStream()
+                        bmResult.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                        val byteArray = stream.toByteArray()
+                        val bmWidth = bmResult.width
+                        val bmHeight = bmResult.height
+
+                        onSuccess(byteArray, bmWidth, bmHeight)
+
+                        bmResult.recycle()
+                        imageProxy.close()
+                    }
+                }
+            }
+        })
+    }
+
+    private fun imageProxyToBitmap(image: Image): Bitmap {
+        val planeProxy = image.planes[0]
+        val buffer: ByteBuffer = planeProxy.buffer
+        val bytes = ByteArray(buffer.remaining())
+        buffer.get(bytes)
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }
 
     /**

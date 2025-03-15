@@ -7,6 +7,9 @@ class MobileScannerErrorCodes {
         // The error code 'BARCODE_ERROR' does not have an error message,
         // because it uses the error message from the underlying error.
         const val BARCODE_ERROR = "MOBILE_SCANNER_BARCODE_ERROR"
+        // The error code 'TAKE_PICTURE_ERROR' does not have an error message,
+        // because it uses the error message from the underlying error.
+        const val TAKE_PICTURE_ERROR = "MOBILE_SCANNER_TAKE_PICTURE_ERROR"
         // The error code 'CAMERA_ACCESS_DENIED' does not have an error message,
         // because it is used for a boolean result.
         const val CAMERA_ACCESS_DENIED = "MOBILE_SCANNER_CAMERA_PERMISSION_DENIED"

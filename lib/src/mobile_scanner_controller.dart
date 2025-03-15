@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 import 'package:mobile_scanner/src/enums/barcode_format.dart';
@@ -368,6 +369,17 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
     if (_stop()) {
       await MobileScannerPlatform.instance.pause();
     }
+  }
+
+
+  Future<Uint8List?> takePicture() async {
+    _throwIfNotInitialized();
+
+    if (!value.isRunning) {
+      return null;
+    }
+
+    return await MobileScannerPlatform.instance.takePicture();
   }
 
   /// Switch between the front and back camera.

@@ -46,6 +46,30 @@ class MobileScannerHandler(
 
     private var analyzerResult: MethodChannel.Result? = null
 
+    private val takePictureErrorCallback: TakePictureErrorCallback = {
+        Handler(Looper.getMainLooper()).post {
+            takePictureResult?.error(MobileScannerErrorCodes.TAKE_PICTURE_ERROR, it, null)
+            takePictureResult = null
+        }
+    }
+
+    private val takePictureSuccessCallback: TakePictureSuccessCallback = { image: ByteArray?, width: Int?, height: Int? ->
+        Handler(Looper.getMainLooper()).post {
+            takePictureResult?.success(mapOf(
+                "name" to "picture",
+                // The image dimensions are always provided.
+                "image" to mapOf(
+                    "bytes" to image,
+                    "width" to width?.toDouble(),
+                    "height" to height?.toDouble(),
+                )
+            ))
+            takePictureResult = null
+        }
+    }
+
+    private var takePictureResult: MethodChannel.Result? = null
+
     private val callback: MobileScannerCallback = { barcodes: List<Map<String, Any?>>, image: ByteArray?, width: Int?, height: Int? ->
         barcodeHandler.publishEvent(mapOf(
             "name" to "barcode",
@@ -122,6 +146,7 @@ class MobileScannerHandler(
             "stop" -> stop(call, result)
             "toggleTorch" -> toggleTorch(result)
             "analyzeImage" -> analyzeImage(call, result)
+            "takePicture" -> takePicture(call, result)
             "setScale" -> setScale(call, result)
             "resetScale" -> resetScale(result)
             "updateScanWindow" -> updateScanWindow(call, result)
@@ -248,6 +273,15 @@ class MobileScannerHandler(
             buildBarcodeScannerOptions(formats),
             analyzeImageSuccessCallback,
             analyzeImageErrorCallback)
+    }
+
+    @ExperimentalGetImage
+    private fun takePicture(call: MethodCall, result: MethodChannel.Result) {
+        takePictureResult = result
+
+        mobileScanner!!.takePicture(
+            takePictureSuccessCallback,
+            takePictureErrorCallback)
     }
 
     private fun toggleTorch(result: MethodChannel.Result) {
