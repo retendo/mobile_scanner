@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:typed_data';
 
+import 'package:cross_file/cross_file.dart';
 import 'package:flutter/widgets.dart';
 import 'package:mobile_scanner/src/enums/barcode_format.dart';
 import 'package:mobile_scanner/src/enums/camera_facing.dart';
@@ -371,14 +371,15 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
     }
   }
 
-
-  Future<Uint8List?> takePicture() async {
-    _throwIfNotInitialized();
-
-    if (!value.isRunning) {
-      return null;
-    }
-
+  /// Take a picture.
+  ///
+  /// This is only supported on Android, iOS and MacOS.
+  ///
+  /// Returns an [XFile] that points to the saved image.
+  ///
+  /// If an error occurred during taking the picture,
+  /// a [MobileScannerTakePictureException] error is thrown.
+  Future<XFile> takePicture() async {
     return await MobileScannerPlatform.instance.takePicture();
   }
 

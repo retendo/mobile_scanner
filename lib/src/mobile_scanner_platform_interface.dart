@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:cross_file/cross_file.dart';
 import 'package:flutter/widgets.dart';
 import 'package:mobile_scanner/src/enums/barcode_format.dart';
 import 'package:mobile_scanner/src/enums/torch_state.dart';
@@ -105,7 +104,7 @@ abstract class MobileScannerPlatform extends PlatformInterface {
   }
 
   /// Take a picture.
-  Future<Uint8List?> takePicture() {
+  Future<XFile> takePicture() {
     throw UnimplementedError('takePicture() has not been implemented.');
   }
 

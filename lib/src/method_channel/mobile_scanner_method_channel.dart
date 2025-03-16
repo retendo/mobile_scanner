@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cross_file/cross_file.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -92,27 +93,23 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
     );
   }
 
-  /// Parse a [Uint8List]? from the given [event].
-  Uint8List? _parseImage(Map<Object?, Object?>? event) {
-    if (event == null) {
-      return null;
-    }
-
+  /// Parse a [XFile]? from the given [event].
+  XFile _parseImageFilePath(Map<Object?, Object?> event) {
     if (defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS) {
-      final Map<Object?, Object?>? imageData =
-          event['image'] as Map<Object?, Object?>?;
-      final Uint8List? image = imageData?['bytes'] as Uint8List?;
+      final String? imageFilePath = event['imageFilePath'] as String?;
 
-      return image;
+      if (imageFilePath == null) {
+        throw const MobileScannerTakePictureException(
+          'Could not find an image file path in cross platform payload.',
+        );
+      }
+      return XFile(imageFilePath);
     }
 
-    throw const MobileScannerException(
-      errorCode: MobileScannerErrorCode.genericError,
-      errorDetails: MobileScannerErrorDetails(
-        message: 'Only Android, iOS and macOS are supported.',
-      ),
+    throw const MobileScannerTakePictureException(
+      'Only Android, iOS and macOS are supported.',
     );
   }
 
@@ -343,19 +340,22 @@ class MethodChannelMobileScanner extends MobileScannerPlatform {
   }
 
   @override
-  Future<Uint8List?> takePicture() async {
+  Future<XFile> takePicture() async {
     try {
       final Map<Object?, Object?>? result =
         await methodChannel.invokeMapMethod<Object?, Object?>('takePicture');
 
-      return _parseImage(result);
-    } on PlatformException catch (error) {
-      // Handle any errors from analyze image requests.
-      if (error.code == kTakePictureErrorEventName) {
-        throw MobileScannerTakePictureException(error.message);
+      if (result == null) {
+        throw const MobileScannerTakePictureException(
+          'Could not find a cross platform payload.',
+        );
       }
 
-      return null;
+      return _parseImageFilePath(result);
+    } on PlatformException catch (error) {
+      throw MobileScannerTakePictureException(error.message);
+    } catch (_) {
+      throw const MobileScannerTakePictureException('Something went wrong while taking a picture.');
     }
   }
 

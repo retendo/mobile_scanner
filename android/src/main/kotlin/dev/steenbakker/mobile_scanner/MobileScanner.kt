@@ -3,11 +3,9 @@ package dev.steenbakker.mobile_scanner
 import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.graphics.Rect
 import android.hardware.display.DisplayManager
-import android.media.Image
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -41,10 +39,9 @@ import dev.steenbakker.mobile_scanner.utils.YuvToRgbConverter
 import io.flutter.view.TextureRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
-import java.nio.ByteBuffer
+import java.io.File
 import kotlin.math.roundToInt
 
 class MobileScanner(
@@ -62,6 +59,7 @@ class MobileScanner(
     private var preview: Preview? = null
     private var textureEntry: TextureRegistry.SurfaceTextureEntry? = null
     private var scanner: BarcodeScanner? = null
+    private var imageCapture: ImageCapture? = null
     private var lastScanned: List<String?>? = null
     private var scannerTimeout = false
     private var displayListener: DisplayManager.DisplayListener? = null
@@ -330,6 +328,9 @@ class MobileScanner(
             val previewBuilder = Preview.Builder()
             preview = previewBuilder.build().apply { setSurfaceProvider(surfaceProvider) }
 
+            // Build the image capture use case
+            imageCapture = ImageCapture.Builder().build()
+
             // Build the analyzer to be passed on to MLKit
             val analysisBuilder = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -386,6 +387,7 @@ class MobileScanner(
                     activity as LifecycleOwner,
                     cameraPosition,
                     preview,
+                    imageCapture,
                     analysis
                 )
                 cameraSelector = cameraPosition
@@ -567,54 +569,29 @@ class MobileScanner(
     fun takePicture(
         onSuccess: TakePictureSuccessCallback,
         onError: TakePictureErrorCallback) {
-        val imageCapture = camera?.cameraInfo?.sensorRotationDegrees?.let {
-            ImageCapture.Builder()
-                .build()
-        }
-
-        cameraSelector?.let {
-            cameraProvider?.bindToLifecycle(activity as LifecycleOwner,
-                it, imageCapture, preview)
-        }
-
+        println("TAKE_PICTURE: --Start")
         val executor = ContextCompat.getMainExecutor(activity)
-        imageCapture?.takePicture(executor, object : ImageCapture.OnImageCapturedCallback() {
+
+        val outputDir = activity.cacheDir
+        val temporaryCaptureFile: File
+        try {
+            temporaryCaptureFile = File.createTempFile("mobile_scanner_image_capture", ".jpg", outputDir);
+        } catch (error: Exception) {
+            onError(error.message ?: "Could not create temporary capture file.")
+            return;
+        }
+        val outputFileOptions = ImageCapture.OutputFileOptions.Builder(temporaryCaptureFile).build()
+
+        imageCapture?.takePicture(outputFileOptions, executor, object : ImageCapture.OnImageSavedCallback {
             override fun onError(error: ImageCaptureException)
             {
                 onError(error.message ?: "")
             }
-            override fun onCaptureSuccess(imageProxy: ImageProxy) {
-                val mediaImage = imageProxy.image;
-                if (mediaImage == null) {
-                    onError("No image found after capture.")
-                } else {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val bitmap = imageProxyToBitmap(mediaImage);
-
-                        val bmResult = rotateBitmap(bitmap, camera?.cameraInfo?.sensorRotationDegrees?.toFloat() ?: 90f)
-
-                        val stream = ByteArrayOutputStream()
-                        bmResult.compress(Bitmap.CompressFormat.PNG, 100, stream)
-                        val byteArray = stream.toByteArray()
-                        val bmWidth = bmResult.width
-                        val bmHeight = bmResult.height
-
-                        onSuccess(byteArray, bmWidth, bmHeight)
-
-                        bmResult.recycle()
-                        imageProxy.close()
-                    }
-                }
+            override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                println("TAKE_PICTURE: --onImageSaved")
+                onSuccess(temporaryCaptureFile.absolutePath)
             }
         })
-    }
-
-    private fun imageProxyToBitmap(image: Image): Bitmap {
-        val planeProxy = image.planes[0]
-        val buffer: ByteBuffer = planeProxy.buffer
-        val bytes = ByteArray(buffer.remaining())
-        buffer.get(bytes)
-        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }
 
     /**

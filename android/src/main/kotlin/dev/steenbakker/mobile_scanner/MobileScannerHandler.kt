@@ -53,16 +53,12 @@ class MobileScannerHandler(
         }
     }
 
-    private val takePictureSuccessCallback: TakePictureSuccessCallback = { image: ByteArray?, width: Int?, height: Int? ->
+    private val takePictureSuccessCallback: TakePictureSuccessCallback = { imageFilePath: String ->
         Handler(Looper.getMainLooper()).post {
             takePictureResult?.success(mapOf(
-                "name" to "picture",
+                "name" to "image",
                 // The image dimensions are always provided.
-                "image" to mapOf(
-                    "bytes" to image,
-                    "width" to width?.toDouble(),
-                    "height" to height?.toDouble(),
-                )
+                "imageFilePath" to imageFilePath
             ))
             takePictureResult = null
         }
