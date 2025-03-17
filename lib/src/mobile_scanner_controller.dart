@@ -27,6 +27,7 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
     this.returnImage = false,
     this.torchEnabled = false,
     this.useNewCameraSelector = false,
+    this.takePictureJpegQuality = 95,
   })  : detectionTimeoutMs =
             detectionSpeed == DetectionSpeed.normal ? detectionTimeoutMs : 0,
         assert(
@@ -96,6 +97,11 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
   ///
   /// Only supported on Android.
   final bool useNewCameraSelector;
+
+  /// The JPEG quality of the image that can be taken with [takePicture].
+  ///
+  /// This setting is only supported on Android. Other platforms will ignore this option.
+  final int takePictureJpegQuality;
 
   /// The internal barcode controller, that listens for detected barcodes.
   final StreamController<BarcodeCapture> _barcodesController =
@@ -308,6 +314,7 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
       returnImage: returnImage,
       torchEnabled: torchEnabled,
       useNewCameraSelector: useNewCameraSelector,
+      takePictureJpegQuality: takePictureJpegQuality,
     );
 
     try {
@@ -373,7 +380,7 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
 
   /// Take a picture.
   ///
-  /// This is only supported on Android, iOS and MacOS.
+  /// This is only supported on Android.
   ///
   /// Returns an [XFile] that points to the saved image.
   ///

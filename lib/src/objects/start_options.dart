@@ -15,6 +15,7 @@ class StartOptions {
     required this.returnImage,
     required this.torchEnabled,
     required this.useNewCameraSelector,
+    required this.takePictureJpegQuality,
   });
 
   /// The direction for the camera.
@@ -43,6 +44,11 @@ class StartOptions {
   /// This option is only supported on Android. Other platforms will ignore this option.
   final bool useNewCameraSelector;
 
+  /// The JPEG quality of the image that can be taken with [MobileScannerController.takePicture].
+  ///
+  /// This setting is only supported on Android. Other platforms will ignore this option.
+  final int takePictureJpegQuality;
+
   Map<String, Object?> toMap() {
     return <String, Object?>{
       if (cameraResolution != null)
@@ -54,6 +60,7 @@ class StartOptions {
       if (formats.isNotEmpty)
         'formats': formats.map((f) => f.rawValue).toList(),
       'returnImage': returnImage,
+      'jpegQuality': takePictureJpegQuality,
       'speed': detectionSpeed.rawValue,
       'timeout': detectionTimeoutMs,
       'torch': torchEnabled,

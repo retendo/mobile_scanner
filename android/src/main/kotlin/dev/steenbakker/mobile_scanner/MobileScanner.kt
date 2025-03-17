@@ -70,6 +70,7 @@ class MobileScanner(
     private var detectionTimeout: Long = 250
     private var returnImage = false
     private var isPaused = false
+    private var jpegQuality: Int = 95
 
     companion object {
         /**
@@ -253,6 +254,7 @@ class MobileScanner(
     fun start(
         barcodeScannerOptions: BarcodeScannerOptions?,
         returnImage: Boolean,
+        jpegQuality: Int,
         cameraPosition: CameraSelector,
         torch: Boolean,
         detectionSpeed: DetectionSpeed,
@@ -267,6 +269,7 @@ class MobileScanner(
         this.detectionSpeed = detectionSpeed
         this.detectionTimeout = detectionTimeout
         this.returnImage = returnImage
+        this.jpegQuality = jpegQuality
 
         if (camera?.cameraInfo != null && preview != null && textureEntry != null && !isPaused) {
 
@@ -329,7 +332,7 @@ class MobileScanner(
             preview = previewBuilder.build().apply { setSurfaceProvider(surfaceProvider) }
 
             // Build the image capture use case
-            imageCapture = ImageCapture.Builder().build()
+            imageCapture = ImageCapture.Builder().setJpegQuality(jpegQuality).build()
 
             // Build the analyzer to be passed on to MLKit
             val analysisBuilder = ImageAnalysis.Builder()

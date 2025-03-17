@@ -156,6 +156,7 @@ class MobileScannerHandler(
         val facing: Int = call.argument<Int>("facing") ?: 0
         val formats: List<Int>? = call.argument<List<Int>>("formats")
         val returnImage: Boolean = call.argument<Boolean>("returnImage") ?: false
+        val jpegQuality: Int = call.argument<Int>("jpegQuality") ?: 95
         val speed: Int = call.argument<Int>("speed") ?: 1
         val timeout: Int = call.argument<Int>("timeout") ?: 250
         val cameraResolutionValues: List<Int>? = call.argument<List<Int>>("cameraResolution")
@@ -180,6 +181,7 @@ class MobileScannerHandler(
         mobileScanner!!.start(
             barcodeScannerOptions,
             returnImage,
+            jpegQuality,
             position,
             torch,
             detectionSpeed,
